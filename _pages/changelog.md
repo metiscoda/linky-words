@@ -6,7 +6,8 @@ include_in_header: true
 
 
 ### `Initial Public Release`
-# **Version 1.0.1**
+# **Version 1.0**
+
 
 
 <br>
