@@ -35,20 +35,20 @@ youtube_username                          :
 features                                  :
 
   - title                                 : Puzzle gameplay 
-    description                           : Link letters together to form words from the category.
+    description                           : Link adjacent letters together to form words from the category.
     fontawesome_icon_name                 : puzzle-piece
     
   - title                                 : Level progression
     description                           : Levels get harder as the number of letters increase.
     fontawesome_icon_name                 : flask
 
-  - title                                 : Buy hints
+  - title                                 : Helpful hints
     description                           : If too hard to solve, use a hint to reveal a letter
     fontawesome_icon_name                 : forward
 
-  - title                                 : # New Feature Title
-    description                           : # New Feature Description
-    fontawesome_icon_name                 : # Enter Font Awesome icon name (e.g. star). Find icons on fontawesome.com/icons.
+  - title                                 : Contact Us
+    description                           : For support, click the email (envelope) icon below
+    fontawesome_icon_name                 : circle-question
 
 
 
