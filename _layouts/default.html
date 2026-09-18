@@ -4,6 +4,28 @@
 {% include head.html %}
 
 <body>
+    <!-- Fallback for the ?d= forward in head.html when scripting is off.
+
+         It cannot carry the date across by itself: a static host serves the
+         same file whatever the query string says, and with scripting off there
+         is nothing left to read the query with. The version before this linked
+         straight to play/, which quietly served today's puzzle instead of the
+         day the link was for - someone following a friend's link to the 12th
+         would have played the 18th and never known they had been moved. So it
+         says where the date is and offers the list of days, and the one link
+         that does open a puzzle is labelled as today's. -->
+    <noscript>
+        <div style="background:#FFF9F0;color:#3A332B;font-family:Roboto,Helvetica,Arial,sans-serif;text-align:center;padding:12px 16px;font-size:15px;line-height:1.5;">
+            Following a daily puzzle link? Your browser has scripting off, so it
+            stopped here. The date you were sent is at the end of this page's
+            address, after <code>?d=</code> &mdash; open
+            <a href="{{ '/d/' | relative_url }}" target="_self" style="color:#3A332B;font-weight:700;">the list of daily puzzles</a>
+            and pick that date, or go straight to
+            <code>metiscoda.com/linky-words/d/<i>that&nbsp;date</i>/</code>.
+            <a href="{{ '/play/' | relative_url }}" target="_self" style="color:#3A332B;font-weight:700;">Today's puzzle</a>
+            is here.
+        </div>
+    </noscript>
     <div class="imageWrapper">
             <div class="headerBackground">
                 <div class="container">

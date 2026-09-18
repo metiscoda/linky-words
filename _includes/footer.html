@@ -42,6 +42,13 @@
 
 	</div>
 	<div class="footerLinks">
+		{% comment %}
+		The daily archive is a plain static folder, so Jekyll knows nothing
+		about it and the loop below will never find it. It is named here so the
+		day pages are reachable by following links from the front page, which
+		is how a crawler gets to them and how a visitor finds yesterday's.
+		{% endcomment %}
+		<a href="{{ '/d/' | relative_url }}" target="_self">Daily Puzzles</a>
 		{% for page in site.pages %}
 			<a href="{{ page.url | relative_url }}" target="_self">{{ page.title }}</a>
 		{% endfor %}

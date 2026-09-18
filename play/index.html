@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Linky Words Daily</title>
+<meta name="description" content="Play today's Linky Words daily puzzle in your browser. Ten grids, no signup, no ads.">
+<meta name="theme-color" content="#FFF9F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1E1B17" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Linky Words Daily">
+<meta property="og:description" content="Ten grids a day. Link the letters, find every word. No signup. No ads.">
+<meta property="og:type" content="website">
+<link rel="shortcut icon" href="/linky-words/assets/icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap">
+
+  <header class="head">
+    <h1 class="brand">Linky&nbsp;Words <span>Daily</span></h1>
+    <p class="tagline">No signup. No ads. Ten grids.</p>
+  </header>
+
+  <section id="loading" class="panel">
+    <p class="muted">Loading the grids…</p>
+  </section>
+
+  <section id="notfound" class="panel" hidden>
+    <h2 class="panel-title">That day isn&rsquo;t in the archive yet</h2>
+    <p class="muted" id="notfound-detail"></p>
+    <button type="button" class="btn btn-primary" id="btn-today">Play today&rsquo;s puzzle</button>
+  </section>
+
+  <section id="game" hidden>
+    <div class="daybar">
+      <div class="daybar-main">
+        <span class="category" id="d-category">&nbsp;</span>
+        <span class="date" id="d-date">&nbsp;</span>
+      </div>
+      <div class="daybar-stats">
+        <span class="stat" id="d-level">Level 1 of 10</span>
+        <span class="stat" id="d-timer">0:00</span>
+      </div>
+    </div>
+
+    <ul class="words" id="d-words" aria-label="Words in this grid"></ul>
+
+    <div class="board-wrap">
+      <svg class="trail" id="d-trail" aria-hidden="true"></svg>
+      <div class="board" id="d-board" role="group" aria-label="Letter grid"></div>
+    </div>
+
+    <p class="message" id="d-message" role="status" aria-live="polite">&nbsp;</p>
+
+    <div class="controls">
+      <button type="button" class="btn btn-ghost" id="btn-hint">Hint <span id="d-hints">5 left</span></button>
+    </div>
+  </section>
+
+  <section id="done" class="panel" hidden>
+    <h2 class="panel-title">Day complete</h2>
+    <pre class="result" id="d-result"></pre>
+    <div class="controls">
+      <button type="button" class="btn btn-primary" id="btn-copy">Copy result</button>
+      <button type="button" class="btn btn-ghost" id="btn-share" hidden>Share</button>
+    </div>
+    <p class="streak" id="d-streak"></p>
+    <div class="cta">
+      <p class="cta-line">Liked it? The app has all 73 days, keeps your streak, plays offline, and reminds you at 7pm.</p>
+      <div class="controls">
+        <button type="button" class="btn btn-store" id="btn-play">Google Play</button>
+        <button type="button" class="btn btn-store" id="btn-appstore">App Store</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p class="muted small">Ten grids a day, every day. <span id="foot-note"></span></p>
+  </footer>
+
+</main>
+<script src="app.js"></script>
+</body>
+</html>

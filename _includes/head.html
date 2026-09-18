@@ -4,8 +4,52 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<base target="_blank">
 
+	{% comment %}
+	Shared head for the Jekyll-rendered pages only (landing page, privacy
+	policy, changelog). The per-day share pages under /d/YYYY-MM-DD/ and the
+	player under /play/ are static files with no front matter, so Jekyll never
+	applies this include to them and their own og:/twitter: tags stand alone.
+	{% endcomment %}
+
+	{% if page.url == '/' %}
+	<!-- Shares from the app land on /linky-words/?d=YYYY-MM-DD. Hand those
+	     straight to the web player, carrying any &src= through. Visitors with
+	     no ?d= fall through to the marketing page below. -->
+	<script>
+	(function () {
+		var q = window.location.search;
+		var d = /[?&]d=(\d{4}-\d{2}-\d{2})/.exec(q);
+		if (!d) { return; }
+		var s = /[?&]src=([^&#]*)/.exec(q);
+		window.location.replace('play/?d=' + d[1] + (s ? '&src=' + s[1] : ''));
+	})();
+	</script>
+	{% endif %}
+
+	{% assign site_base = site.url | append: site.baseurl %}
+	{% assign social_title = site.page_title | default: site.app_name %}
+
 	<title class="pageTitle">{{ site.page_title }}</title>
 	<meta name="description" content="{{ site.app_description }}">
+	<link rel="canonical" href="{{ site_base }}{{ page.url }}">
+
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="{{ site.app_name }}">
+	<meta property="og:title" content="{% if page.title %}{{ page.title }} &middot; {% endif %}{{ social_title }}">
+	<meta property="og:description" content="{{ site.app_description }}">
+	<meta property="og:url" content="{{ site_base }}{{ page.url }}">
+	<meta property="og:image" content="{{ site_base }}/{{ site.cover_image }}">
+	<meta property="og:image:secure_url" content="{{ site_base }}/{{ site.cover_image }}">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="1500">
+	<meta property="og:image:height" content="1001">
+	<meta property="og:image:alt" content="{{ site.app_name }} &mdash; {{ site.app_description }}">
+
+	<meta name="twitter:card" content="summary_large_image">
+	{% if site.twitter_username %}<meta name="twitter:site" content="@{{ site.twitter_username }}">{% endif %}
+	<meta name="twitter:title" content="{% if page.title %}{{ page.title }} &middot; {% endif %}{{ social_title }}">
+	<meta name="twitter:description" content="{{ site.app_description }}">
+	<meta name="twitter:image" content="{{ site_base }}/{{ site.cover_image }}">
 
 	<link rel="shortcut icon" href="{{ site.app_icon }}">
 

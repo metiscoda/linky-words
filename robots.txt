@@ -1,0 +1,21 @@
+# Linky Words -- https://www.metiscoda.com/linky-words/
+#
+# NOTE ON SCOPE. This repo publishes under a path (_config.yml sets
+# baseurl: /linky-words), so this file is served at
+# /linky-words/robots.txt. Crawlers only honour robots.txt at the origin
+# root, /robots.txt, which is served by the metiscoda.github.io repo.
+# This copy is here so the rule travels with the site it describes, and so
+# it is already right if the site is ever served from a root. The control
+# that actually holds today is the per-page
+# <meta name="robots" content="noindex"> that
+# scripts/gen-daily-share-pages.py stamps on every day that is not out yet.
+#
+# Unreleased days are deliberately NOT disallowed here. Disallow stops the
+# fetch, which would stop a crawler ever reading the noindex on those pages
+# and could leave them indexed on URL alone. Let them be crawled; the meta
+# tag is what keeps them out of the index.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://www.metiscoda.com/linky-words/sitemap.xml
