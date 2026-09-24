@@ -14,7 +14,9 @@ page, or handing it to a crawler, would give the puzzle away before it is due.
 So the cut is the same one the app makes: a day is public once its date has
 come.
 
-HOW IT IS REGENERATED. Run it from anywhere; it works on the repo it lives in:
+HOW IT IS REGENERATED. .github/workflows/daily-release.yml runs it every
+morning, after gen-daily-share-pages.py, and commits whatever changed. By hand,
+from anywhere (it works on the repo it lives in):
 
     python3 _tools/gen-archive.py
 
@@ -25,20 +27,28 @@ hand-edited.
 
   *** THIS SCRIPT IS DATE-DRIVEN. IT MUST BE RERUN, DAILY. ***
 
-It reads date.today() and bakes the answer into two static files. Skip a day
+The Action does that. It reads today's date (LW_TODAY=YYYY-MM-DD overrides it)
+and bakes the answer into two static files. Skip a day
 and sitemap.xml still ends at the last day it was run, so a day that has since
 come due is never offered to a crawler. The per-day pages have the same
-dependency in the other direction: scripts/gen-daily-share-pages.py stamps
+dependency in the other direction: _tools/gen-daily-share-pages.py stamps
 <meta name="robots" content="noindex"> on every day that is not out yet, and a
 day that has since come due keeps that noindex until IT is rerun too. Neither
 of those can be fixed from the browser - a crawler reads the raw HTML, and no
 script can retract a noindex or add a URL to a sitemap after the fact.
 
-So the required cadence, every day the site is rebuilt, in this order:
+So the required cadence, every day, in this order - which is what the Action
+runs:
 
-    node   scripts/export-web-daily.js          # game repo, only if days changed
-    python3 scripts/gen-daily-share-pages.py    # game repo, clears noindex
-    python3 _tools/gen-archive.py               # here, relists and re-sitemaps
+    python3 _tools/gen-daily-share-pages.py     # clears noindex off days now due
+    python3 _tools/gen-archive.py               # relists and re-sitemaps
+
+LASTMOD comes from git, not file times: a fresh checkout stamps every file with
+the moment it was cloned, which would move every date in the sitemap on every
+run and give the Action something to commit every day forever. A file with
+uncommitted changes counts as changed today. A Jekyll page counts as changed
+when its source or anything that renders it (_layouts, _includes, _config.yml)
+changed.
 
 See the game repo's scripts/README.md, "Daily site regeneration".
 
@@ -57,6 +67,7 @@ through untouched.
 """
 import json
 import os
+import subprocess
 from datetime import date, datetime, timezone
 
 SITE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -64,7 +75,8 @@ BASE = "https://www.metiscoda.com/linky-words"
 MONTHS = ["January", "February", "March", "April", "May", "June", "July",
           "August", "September", "October", "November", "December"]
 
-TODAY = date.today()
+TODAY = (datetime.strptime(os.environ["LW_TODAY"], "%Y-%m-%d").date()
+         if os.environ.get("LW_TODAY") else date.today())
 
 
 def day_date(entry):
@@ -76,9 +88,29 @@ def esc(text):
                 .replace(">", "&gt;").replace('"', "&quot;"))
 
 
-def lastmod(path):
-    stamp = datetime.fromtimestamp(os.path.getmtime(path), timezone.utc)
+def git(*args):
+    return subprocess.run(["git", "-C", SITE] + list(args), capture_output=True,
+                          text=True, check=True).stdout.strip()
+
+
+def lastmod(*paths):
+    """The day these files last changed: today if any has uncommitted changes
+    (they are about to be committed), else the newest commit touching them.
+    File times only when git is not there to ask."""
+    try:
+        if git("status", "--porcelain", "--", *paths):
+            return TODAY.isoformat()
+        committed = git("log", "-1", "--format=%cs", "--", *paths)
+        if committed:
+            return committed
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    stamp = max(datetime.fromtimestamp(os.path.getmtime(p), timezone.utc) for p in paths)
     return stamp.date().isoformat()
+
+
+# What every Jekyll-rendered page is built from besides its own source file.
+JEKYLL = [os.path.join(SITE, p) for p in ("_layouts", "_includes", "_config.yml")]
 
 
 days = json.load(open(os.path.join(SITE, "play", "data", "index.json")))
@@ -286,11 +318,13 @@ with open(os.path.join(SITE, "d", "index.html"), "w") as handle:
 # The Jekyll-rendered pages, by the URL they are published at. Kept as a list
 # here rather than discovered, because there are three of them and each one is
 # a deliberate page rather than a file that happens to exist.
-entries = [("%s/" % BASE, lastmod(os.path.join(SITE, "index.html"))),
-           ("%s/privacypolicy/" % BASE, lastmod(os.path.join(SITE, "_pages", "privacypolicy.md"))),
-           ("%s/changelog/" % BASE, lastmod(os.path.join(SITE, "_pages", "changelog.md"))),
+entries = [("%s/" % BASE, lastmod(os.path.join(SITE, "index.html"), *JEKYLL)),
+           ("%s/privacypolicy/" % BASE, lastmod(os.path.join(SITE, "_pages", "privacypolicy.md"), *JEKYLL)),
+           ("%s/changelog/" % BASE, lastmod(os.path.join(SITE, "_pages", "changelog.md"), *JEKYLL)),
            ("%s/play/" % BASE, lastmod(os.path.join(SITE, "play", "index.html"))),
-           ("%s/d/" % BASE, TODAY.isoformat())]
+           # written above, so an unchanged day leaves it byte-identical and dated
+           # by its last commit
+           ("%s/d/" % BASE, lastmod(os.path.join(SITE, "d", "index.html")))]
 
 entries += [("%s/d/%s/" % (BASE, d["date"]),
              lastmod(os.path.join(SITE, "d", d["date"], "index.html")))

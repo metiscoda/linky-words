@@ -8,7 +8,7 @@
 # it is already right if the site is ever served from a root. The control
 # that actually holds today is the per-page
 # <meta name="robots" content="noindex"> that
-# scripts/gen-daily-share-pages.py stamps on every day that is not out yet.
+# _tools/gen-daily-share-pages.py stamps on every day that is not out yet.
 #
 # Unreleased days are deliberately NOT disallowed here. Disallow stops the
 # fetch, which would stop a crawler ever reading the noindex on those pages

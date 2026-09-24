@@ -1,0 +1,72 @@
+# Releases each day's puzzle to search engines.
+#
+# The player and the /d/ archive already unlock days from the visitor's own
+# clock, so people never wait on this. Crawlers do: they read raw HTML, so a
+# day's share page keeps its noindex, and sitemap.xml leaves it out, until the
+# two generators in _tools/ are rerun after its date. This reruns them every
+# morning and commits only when something changed, which is once a day while
+# unreleased days remain and never after the last one is out.
+#
+# New days still come from the game repo, pushed by hand - see its
+# scripts/README.md, "Daily site regeneration". Once the last day is out this
+# stops committing, and GitHub disables a public repo's schedule after 60 days
+# without activity; a push does not re-enable it. When adding days, run
+# `gh workflow enable daily-release.yml -R metiscoda/linky-words` (harmless if
+# it is already enabled).
+
+name: Daily release
+
+on:
+  schedule:
+    - cron: '17 8 * * *'   # 00:17 PST / 01:17 PDT; GitHub may start it late, which is fine
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: daily-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      # "Today" is the California date, as it is for a local run - not the
+      # runner's UTC date, which a late start would otherwise push a day ahead.
+      TZ: America/Los_Angeles
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # gen-archive.py dates sitemap entries from git history
+
+      - name: Share pages (clears noindex off days now due)
+        run: python3 _tools/gen-daily-share-pages.py
+
+      - name: Archive index and sitemap
+        run: python3 _tools/gen-archive.py
+
+      - name: Commit and push if anything changed
+        id: commit
+        run: |
+          if [ -z "$(git status --porcelain -- d sitemap.xml)" ]; then
+            echo "Nothing came due."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- d sitemap.xml
+          git commit -m "Release the daily puzzle for $(date +%F)"
+          # a hand push may have landed since checkout
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild GitHub Pages
+        # Ask for the build explicitly rather than rely on the push to trigger it.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" --silent
