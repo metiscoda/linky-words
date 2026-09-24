@@ -300,7 +300,10 @@ body {
   border-top: 1px solid var(--tile-edge);
 }
 
+.cta-title { margin: 0 0 6px; font-size: 17px; }
 .cta-line { margin: 0; font-size: 15px; color: var(--ink-2); }
+.cta .controls { margin-top: 14px; }
+.foot a { color: inherit; }
 
 .foot { margin-top: 28px; text-align: center; }
 

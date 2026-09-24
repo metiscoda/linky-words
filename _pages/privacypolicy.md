@@ -23,6 +23,15 @@ The app does use third party services that may collect information used to ident
 Link to privacy policy of third party service providers used by the app
 
 *   [Unity](https://unity3d.com/legal/privacy-policy)
+*   [Google Analytics for Firebase](https://firebase.google.com/support/privacy)
+
+**Website and Web Player**
+
+The Linky Words website, including the daily puzzle you can play in your browser at metiscoda.com/linky-words/play/, uses Google Analytics (through Firebase) to count how the puzzle is used. We record events such as opening a day's puzzle, finishing it, sharing a result and tapping an App Store or Google Play button, together with the puzzle number, the time taken, the number of hints used and your current streak. Google Analytics also receives standard browser information: your IP address (which Google does not store), an approximate location at country and city level, browser and device type, and the page that referred you.
+
+To tell one visit from the next, Google Analytics sets a first-party cookie holding a random identifier. It is not linked to your name, email or any account; the web player has no sign-in. We have turned off Google signals and ad personalization, and we do not use this data for advertising. In the European Economic Area, the United Kingdom and Switzerland, the analytics cookie is not set, and only cookieless, identifier-free measurements are sent.
+
+Your puzzle progress, finished days and streak are stored only in your own browser (local storage) and are never sent to us. You can block analytics with any content blocker, or clear the cookie and local storage in your browser settings; the puzzle works the same either way.
 
 **Log Data**
 
@@ -61,7 +70,7 @@ These Services do not address anyone under the age of 13. We do not knowingly co
 
 We may update our Privacy Policy from time to time. Thus, you are advised to review this page periodically for any changes. We will notify you of any changes by posting the new Privacy Policy on this page.
 
-This policy is effective as of 2021-06-01
+This policy is effective as of 2026-09-24
 
 **Contact Us**
 

@@ -12,7 +12,15 @@ var HINT_CAP = 5;
 var GREEN = '🟩';                      /* U+1F7E9 */
 var YELLOW = '🟨';                     /* U+1F7E8 */
 var STORE_PLAY = 'https://play.google.com/store/apps/details?id=com.metiscoda.linkletter';
-var STORE_APPLE = 'https://apps.apple.com/us/app/linky-words-word-puzzle-game/id6476451925';
+/* pt = App Store Connect provider id, ct = campaign; installs report under App Analytics > Campaigns */
+var STORE_APPLE = 'https://apps.apple.com/app/apple-store/id6476451925?pt=118914450&mt=8';
+var APP_GRIDS = 390;   /* Classic 160 + Geography 136 + Mythology 97, rounded down */
+
+/* analytics.js may be blocked or missing; the game never depends on it */
+function track(name, params, then) {
+  if (typeof window !== 'undefined' && typeof window.lwTrack === 'function') window.lwTrack(name, params, then);
+  else if (typeof then === 'function') then();
+}
 
 /* 'YYYY-MM-DD' -> {y,m,d} or null */
 function parseDateStr(s) {
@@ -434,10 +442,12 @@ function boot() {
     $('btn-share').addEventListener('click', shareResult);
     $('btn-play').addEventListener('click', function () {
       var referrer = 'utm_source=' + src + '&utm_medium=organic&utm_campaign=web-daily';
-      window.location.href = STORE_PLAY + '&referrer=' + encodeURIComponent(referrer);
+      storeClick('play', STORE_PLAY + '&referrer=' + encodeURIComponent(referrer));
     });
     $('btn-appstore').addEventListener('click', function () {
-      window.location.href = STORE_APPLE;
+      /* ct mirrors the Play referrer's campaign, with the source appended when it is not the default */
+      var ct = (src === 'web' ? 'web-daily' : 'web-daily.' + src).slice(0, 40);
+      storeClick('appstore', STORE_APPLE + '&ct=' + encodeURIComponent(ct));
     });
     if (typeof navigator !== 'undefined' && navigator.share) $('btn-share').hidden = false;
 
@@ -446,8 +456,15 @@ function boot() {
     });
     window.addEventListener('resize', drawTrail);
 
+    track('web_daily_open', { content_id: S.day.id || dayId, is_today: idx === todayIdx, src: src });
+
     if (S.level >= S.day.levels.length) { finishDay(false); return; }
     renderLevel();
+  }
+
+  function storeClick(store, url) {
+    track('web_store_click', { store: store, streak: streakFrom(loadDone(), todayIdx), src: src },
+      function () { window.location.href = url; });
   }
 
   /* ---------- progress persistence ---------- */
@@ -921,12 +938,33 @@ function boot() {
     $('d-streak').textContent = n > 1
       ? n + ' days in a row.'
       : (n === 1 ? 'Day 1 of a new streak.' : '');
+    renderCta(n);
+
+    if (justNow) {
+      track('web_day_complete', {
+        content_id: S.day.id || dayId, seconds: seconds, hints: S.hintsUsed, streak: n
+      });
+    }
+  }
+
+  /* A first visit wants more to play; a returning player has a habit to keep. */
+  function renderCta(streak) {
+    if (streak > 1) {
+      $('cta-title').textContent = 'Keep the streak in your pocket';
+      $('cta-line').textContent = 'The app reminds you at 7pm so a busy day doesn’t cost you the streak, '
+        + 'and has ' + APP_GRIDS + ' more grids for when today’s are done. Free, and it plays offline.';
+    } else {
+      $('cta-title').textContent = 'Want more?';
+      $('cta-line').textContent = 'The app has ' + APP_GRIDS + ' more grids in Classic, Geography '
+        + 'and Mythology, plus a new daily every morning. Free, and it plays offline.';
+    }
   }
 
   function copyResult() {
     var text = $('btn-copy').dataset.text || $('d-result').textContent;
     var done = function () {
       $('btn-copy').textContent = 'Copied';
+      track('web_share', { method: 'copy', content_id: S.day.id || dayId });
       window.setTimeout(function () { $('btn-copy').textContent = 'Copy result'; }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -962,7 +1000,9 @@ function boot() {
        appends the url would print it twice */
     var payload = { text: $('btn-share').dataset.text || $('d-result').textContent };
     if ($('btn-share').dataset.url) payload.url = $('btn-share').dataset.url;
-    navigator.share(payload).catch(function () { /* dismissed */ });
+    navigator.share(payload).then(function () {
+      track('web_share', { method: 'share', content_id: S.day.id || dayId });
+    }, function () { /* dismissed */ });
   }
 }
 
