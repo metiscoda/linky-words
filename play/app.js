@@ -348,7 +348,7 @@ function boot() {
     movedSinceDown: false,
     tapMode: false,
     locked: {},         /* "r,c" -> true for tiles a found word has spent */
-    assignCache: null,  /* {key, value} - the whole-level partition, for hints */
+    assignCache: null,  /* {key, value} - the whole-level partition, for old saves */
     elapsedMs: 0,
     runningSince: 0,
     tick: null,
@@ -438,6 +438,7 @@ function boot() {
     $('foot-note').textContent = 'Puzzle ' + (idx + 1) + ' of 73.';
 
     $('btn-hint').addEventListener('click', useHint);
+    $('btn-restart').addEventListener('click', restartLevel);
     $('btn-copy').addEventListener('click', copyResult);
     $('btn-share').addEventListener('click', shareResult);
     $('btn-play').addEventListener('click', function () {
@@ -592,10 +593,11 @@ function boot() {
   }
 
   /*
-   * One partition for the whole level, so hints never light a tile that belongs
-   * to another word. Words the player has already traced are pinned to their own
-   * path, so the hint assignment agrees with what is already on the board.
-   * Cached; the key changes only when the found set does.
+   * One partition for the whole level, for a save that recorded a found word
+   * but not the path traced for it: foundCells() needs some tiles to spend.
+   * Words the player has already traced are pinned to their own path, so the
+   * guess agrees with what is already on the board. Cached; the key changes
+   * only when the found set does.
    */
   function currentAssignment() {
     var lv = level();
@@ -631,24 +633,8 @@ function boot() {
     return lockedMap;
   }
 
-  function hintCells() {
-    /* the first `reveals[i]` tiles of every unfound word that has been hinted */
-    var lv = level();
-    var out = {}, assign = null;
-    for (var i = 0; i < lv.words.length; i++) {
-      var n = S.reveals[S.level][i] || 0;
-      if (!n || S.found[S.level].indexOf(lv.words[i]) !== -1) continue;
-      if (!assign) assign = currentAssignment();
-      var p = assign && assign[i];
-      if (!p) continue;
-      for (var j = 0; j < n && j < p.length; j++) out[p[j].r + ',' + p[j].c] = true;
-    }
-    return out;
-  }
-
   function paintBoard() {
     var locked = foundCells();
-    var hinted = hintCells();
     S.locked = locked;
     var inPath = {};
     for (var i = 0; i < S.path.length; i++) inPath[S.path[i].r + ',' + S.path[i].c] = true;
@@ -659,14 +645,21 @@ function boot() {
       var cell = S.cells[+t.dataset.i];
       t.classList.toggle('is-found', !!locked[key]);
       t.classList.toggle('is-active', !!inPath[key]);
-      t.classList.toggle('is-hint', !!hinted[key] && !locked[key]);
       /* a found tile is spent: GameManager.OnWordFound marks it Found and
          LetterBoard only builds a tile for UsedButNotFound, so the app takes it
          off the board. Letting the web reuse it would put two words on one tile
          and leave another tile uncovered. */
       t.disabled = !cell || !cell.used || !!locked[key];
     }
+    paintRestart();
     drawTrail();
+  }
+
+  /* nothing to undo on a fresh level; nothing to restart once it is solved */
+  function paintRestart() {
+    var btn = $('btn-restart'), lv = level();
+    var found = S.found[S.level] ? S.found[S.level].length : 0;
+    btn.disabled = S.complete || found === lv.words.length || (!found && !S.path.length);
   }
 
   function drawTrail() {
@@ -701,7 +694,8 @@ function boot() {
       li.className = 'word' + (isFound ? ' word-found' : '');
       for (var j = 0; j < word.length; j++) {
         var span = document.createElement('span');
-        span.className = 'ch' + (j < shown ? '' : ' ch-hidden');
+        /* hint letters show in the word's slot, in their own colour; the board is left alone */
+        span.className = 'ch' + (j >= shown ? ' ch-hidden' : (!isFound ? ' ch-hint' : ''));
         span.textContent = j < shown ? word.charAt(j) : '·';
         li.appendChild(span);
       }
@@ -870,6 +864,32 @@ function boot() {
     renderLevel();
   }
 
+  /* ---------- restarting a level ---------- */
+
+  /*
+   * GameManager.RestartBoard: every tile back on the board, found words
+   * cleared. Revealed hint letters stay (they were paid for), and so do the
+   * hint count and the clock - restarting must not be a way to a cleaner or
+   * faster result.
+   */
+  function restartLevel() {
+    var lv = level();
+    var had = S.found[S.level].length;
+    if (S.complete || had === lv.words.length) return;
+    S.found[S.level] = [];
+    S.foundPaths[S.level] = {};
+    S.path = [];
+    S.tapMode = false;
+    S.pointerActive = false;
+    S.assignCache = null;
+    paintBoard();
+    paintWords();
+    paintStatus();
+    message(had ? 'Level restarted.' : '');
+    saveProgress();
+    if (had) track('web_level_restart', { content_id: S.day.id, level: S.level + 1, found: had });
+  }
+
   /* ---------- hints ---------- */
 
   function useHint() {
@@ -895,7 +915,6 @@ function boot() {
     S.hintsUsed++;
     S.hintsPerLevel[S.level] = (S.hintsPerLevel[S.level] || 0) + 1;
 
-    paintBoard();     /* hintCells() reads S.reveals through the level assignment */
     paintWords();
     paintStatus();
     message('Hint: a word starts ' + word.slice(0, n));

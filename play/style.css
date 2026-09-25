@@ -10,6 +10,7 @@
   --accent-ink: #FFF9F0;
   --good: #5E8C4F;
   --hint: #D9A441;
+  --hint-text: #9A6A12;
   --panel: #FFFDF8;
   --shadow: rgba(58, 51, 43, 0.14);
   --radius: 16px;
@@ -26,6 +27,7 @@
     --accent-ink: #201C17;
     --good: #7FAE6E;
     --hint: #E3B461;
+    --hint-text: #E3B461;
     --panel: #26221C;
     --shadow: rgba(0, 0, 0, 0.45);
   }
@@ -125,6 +127,7 @@ body {
 
 .ch { min-width: 8px; text-align: center; }
 .ch-hidden { color: var(--ink-2); opacity: 0.55; }
+.ch-hint { color: var(--hint-text); }
 .word-found .ch-hidden { color: inherit; opacity: 1; }
 
 /* ---------- board ---------- */
@@ -206,11 +209,6 @@ body {
   background: var(--good);
   border-color: var(--good);
   color: var(--accent-ink);
-}
-
-.tile.is-hint {
-  border-color: var(--hint);
-  box-shadow: 0 0 0 2px var(--hint) inset, 0 1px 2px var(--shadow);
 }
 
 .tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

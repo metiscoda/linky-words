@@ -10,6 +10,7 @@
  *   web_day_complete  the tenth grid solved          content_id, seconds, hints, streak
  *   web_store_click   a store button pressed         store, streak, src
  *   web_share         result copied or shared        method, content_id
+ *   web_level_restart Restart level pressed          content_id, level, found
  *
  * Consent: no advertising storage or signals anywhere. Analytics cookies are
  * denied by default in the EEA, UK and Switzerland, where there is no banner to
