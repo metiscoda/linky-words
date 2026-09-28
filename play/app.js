@@ -60,6 +60,20 @@ function todayIndexRaw(now) {
   return utcDayNumber(n.getFullYear(), n.getMonth() + 1, n.getDate()) - EPOCH_DAY;
 }
 
+/*
+ * The newest day that has begun anywhere on Earth. Every day starts first at
+ * UTC+14 (Kiribati), so that clock's date is the furthest ahead any player can
+ * be. A shared link is honoured up to here, not up to the visitor's own date:
+ * when Auckland shares Tuesday, California is still on Monday, and refusing
+ * the link broke the share for everyone west of the sender. A day that has
+ * not started anywhere is still refused. Matches DailySchedule.NewestStartedDate.
+ */
+function newestStartedIndexRaw(now) {
+  var n = now || new Date();
+  var kiribati = Math.floor((n.getTime() + 14 * 3600000) / 86400000) - EPOCH_DAY;
+  return Math.max(todayIndexRaw(n), kiribati);
+}
+
 function clampIndex(i) { return Math.max(0, Math.min(MAX_INDEX, i)); }
 
 function indexToDateStr(i) {
@@ -285,7 +299,7 @@ function formatShare(dateStr, hintsPerLevel, totalWords, seconds) {
 
 var LS_DONE = 'lw.done.v1';
 var LS_SRC = 'lw.src.v1';
-var LS_PROGRESS = 'lw.progress.v1';
+var LS_PROGRESS = 'lw.progress.v1';   /* + '.' + day id; the bare key is the old single slot */
 
 function lsGet(key) {
   try { return window.localStorage.getItem(key); } catch (e) { return null; }
@@ -377,12 +391,14 @@ function boot() {
 
   /*
    * Past days stay open - the web archive deliberately has no 7-day window.
-   * Only the future is refused: without this clamp ?d=2026-11-12 handed out
-   * Geology 55 days early and spoiled the rest of the run.
+   * Only a day that has not begun anywhere is refused: without this clamp
+   * ?d=2026-11-12 handed out Geology 55 days early and spoiled the rest of the
+   * run. The bound is newestStartedIndexRaw, not todayIdx, so a link from a
+   * sender a day ahead still opens.
    */
   if (wantedDate) {
     var got = dayIndexForDate(wantedDate);
-    if (got !== null && got >= 0 && got <= MAX_INDEX && got > todayIdx) {
+    if (got !== null && got >= 0 && got <= MAX_INDEX && got > newestStartedIndexRaw()) {
       failDetail = 'The ' + formatDisplayDate(wantedDate) + ' puzzle opens that morning. Today’s is ready now.';
     } else if (got === null || got < 0 || got > MAX_INDEX) {
       failDetail = '“' + wantedDate + '” isn’t one of the 73 daily puzzles (1 Sep 2026 – 12 Nov 2026).';
@@ -470,8 +486,14 @@ function boot() {
 
   /* ---------- progress persistence ---------- */
 
+  /*
+   * One save per day. A single slot meant opening any other day's link -
+   * a friend's share, an archive day - silently wiped today's unfinished
+   * board. Saves from before this change sit in the bare key and are still
+   * read, for the one day they belong to.
+   */
   function saveProgress() {
-    writeJSON(LS_PROGRESS, {
+    writeJSON(LS_PROGRESS + '.' + S.day.id, {
       id: S.day.id,
       level: S.level,
       found: S.found,
@@ -484,7 +506,7 @@ function boot() {
   }
 
   function restoreProgress() {
-    var p = readJSON(LS_PROGRESS, null);
+    var p = readJSON(LS_PROGRESS + '.' + S.day.id, null) || readJSON(LS_PROGRESS, null);
     if (!p || p.id !== S.day.id) return;
     try {
       if (Array.isArray(p.found) && p.found.length === S.found.length) S.found = p.found;
@@ -1045,6 +1067,7 @@ if (typeof module !== 'undefined' && module.exports) {
     formatTime: formatTime,
     dayIndexForDate: dayIndexForDate,
     todayIndexRaw: todayIndexRaw,
+    newestStartedIndexRaw: newestStartedIndexRaw,
     indexToDateStr: indexToDateStr,
     clampIndex: clampIndex,
     MAX_INDEX: MAX_INDEX
