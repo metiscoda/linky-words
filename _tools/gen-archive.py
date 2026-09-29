@@ -52,7 +52,7 @@ changed.
 
 See the game repo's scripts/README.md, "Daily site regeneration".
 
-WHAT THE BROWSER DOES COVER. d/index.html lists all 73 days, and the unreleased
+WHAT THE BROWSER DOES COVER. d/index.html lists every day, and the unreleased
 ones carry their date but no category and no link. A small inline script checks
 the visitor's own clock and, for any day that has since come due, fetches
 play/data/index.json and fills the link and category back in. That is only for

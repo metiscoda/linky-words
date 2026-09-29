@@ -7,7 +7,8 @@
 
 var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 var EPOCH_Y = 2026, EPOCH_M = 9, EPOCH_D = 1;   /* daily index 0 = 2026-09-01 */
-var MAX_INDEX = 72;                              /* 73 days: 0 .. 72 */
+var MAX_INDEX = 152;                             /* 153 days: 0 .. 152, 1 Sep 2026 - 31 Jan 2027.
+                                                    The messages below count and date from it. */
 var HINT_CAP = 5;
 var GREEN = '🟩';                      /* U+1F7E9 */
 var YELLOW = '🟨';                     /* U+1F7E8 */
@@ -48,7 +49,7 @@ function utcDayNumber(y, m, d) { return Math.floor(Date.UTC(y, m - 1, d) / 86400
 
 var EPOCH_DAY = utcDayNumber(EPOCH_Y, EPOCH_M, EPOCH_D);
 
-/* Day difference from the epoch. May fall outside [0,72]. */
+/* Day difference from the epoch. May fall outside [0,MAX_INDEX]. */
 function dayIndexForDate(s) {
   var p = parseDateStr(s);
   if (!p) return null;
@@ -401,7 +402,8 @@ function boot() {
     if (got !== null && got >= 0 && got <= MAX_INDEX && got > newestStartedIndexRaw()) {
       failDetail = 'The ' + formatDisplayDate(wantedDate) + ' puzzle opens that morning. Today’s is ready now.';
     } else if (got === null || got < 0 || got > MAX_INDEX) {
-      failDetail = '“' + wantedDate + '” isn’t one of the 73 daily puzzles (1 Sep 2026 – 12 Nov 2026).';
+      failDetail = '“' + wantedDate + '” isn’t one of the ' + (MAX_INDEX + 1) + ' daily puzzles (' +
+        formatDisplayDate(indexToDateStr(0)) + ' – ' + formatDisplayDate(indexToDateStr(MAX_INDEX)) + ').';
     } else {
       idx = got;
     }
@@ -451,7 +453,7 @@ function boot() {
 
     $('d-category').textContent = day.category || '';
     $('d-date').textContent = formatDisplayDate(S.dateStr) + (idx === todayIdx ? ' · today' : '');
-    $('foot-note').textContent = 'Puzzle ' + (idx + 1) + ' of 73.';
+    $('foot-note').textContent = 'Puzzle ' + (idx + 1) + ' of ' + (MAX_INDEX + 1) + '.';
 
     $('btn-hint').addEventListener('click', useHint);
     $('btn-restart').addEventListener('click', restartLevel);
