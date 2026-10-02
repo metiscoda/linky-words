@@ -15,7 +15,7 @@ var YELLOW = '🟨';                     /* U+1F7E8 */
 var STORE_PLAY = 'https://play.google.com/store/apps/details?id=com.metiscoda.linkletter';
 /* pt = App Store Connect provider id, ct = campaign; installs report under App Analytics > Campaigns */
 var STORE_APPLE = 'https://apps.apple.com/app/apple-store/id6476451925?pt=118914450&mt=8';
-var APP_GRIDS = 390;   /* Classic 160 + Geography 136 + Mythology 97, rounded down */
+var APP_GRIDS = 312;   /* Classic 132 + Geography 70 + Mythology 50 + Word Origins 60 */
 
 /* analytics.js may be blocked or missing; the game never depends on it */
 function track(name, params, then) {
@@ -998,8 +998,8 @@ function boot() {
         + 'and has ' + APP_GRIDS + ' more grids for when today’s are done. Free, and it plays offline.';
     } else {
       $('cta-title').textContent = 'Want more?';
-      $('cta-line').textContent = 'The app has ' + APP_GRIDS + ' more grids in Classic, Geography '
-        + 'and Mythology, plus a new daily every morning. Free, and it plays offline.';
+      $('cta-line').textContent = 'The app has ' + APP_GRIDS + ' more grids in Classic, Geography, '
+        + 'Mythology and Word Origins, plus a new daily every morning. Free, and it plays offline.';
     }
   }
 
