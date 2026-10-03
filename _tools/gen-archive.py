@@ -52,19 +52,24 @@ changed.
 
 See the game repo's scripts/README.md, "Daily site regeneration".
 
-WHAT THE BROWSER DOES COVER. d/index.html lists every day, and the unreleased
-ones carry their date but no category and no link. A small inline script checks
-the visitor's own clock and, for any day that has since come due, fetches
-play/data/index.json and fills the link and category back in. That is only for
+WHAT THE BROWSER DOES COVER. d/index.html is a calendar with every month of the
+run, and the unreleased days carry their date but no category and no link. A
+small inline script shows one month at a time, opening on the visitor's own
+month, and checks the visitor's own clock: for any day that has since come due,
+it fetches play/data/index.json and fills the link and category back in. That is only for
 the human reader - it means a missed rerun degrades to "not in Google yet"
 rather than "the archive claims today's puzzle is not out". The visitor's clock
 is also the same cut the player uses (app.js takes the local calendar date), so
 the two agree. Crawlers still see only what was released at generation time.
 
 This folder starts with an underscore, so Jekyll leaves it out of the built
-site; the two files it writes have no YAML front matter, so Jekyll copies them
-through untouched.
+site. sitemap.xml has no YAML front matter, so Jekyll copies it through
+untouched. d/index.html does have front matter: Jekyll renders it with
+_layouts/page.html, so it shares the site's head, top bar, footer and app band.
+Its body is plain HTML; the script is fenced in {% raw %} so Liquid leaves it
+alone.
 """
+import calendar
 import json
 import os
 import subprocess
@@ -125,190 +130,220 @@ released = [d for d in days if day_date(d) <= TODAY]
 upcoming = [d for d in days if day_date(d) > TODAY]
 
 # ---------------------------------------------------------------- d/index.html
+#
+# A month-by-month calendar. All months are written into the file, so a crawler
+# and a reader with scripting off get every released day as a plain link; the
+# script below then shows one month at a time, opening on the visitor's own
+# month. Weeks start on Sunday.
 
-rows = []
-month = None
+WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-for position, entry in enumerate(days):
-    when = day_date(entry)
-    label = "%s %d" % (MONTHS[when.month - 1], when.year)
 
-    if label != month:
-        if month is not None:
-            rows.append('  </ul>')
-        month = label
-        rows.append('  <h2>%s</h2>\n  <ul class="days">' % esc(label))
+def sunday_first(when):
+    """Column of a date in a Sunday-first week (Python counts Monday as 0)."""
+    return (when.weekday() + 1) % 7
 
-    if when <= TODAY:
-        rows.append(
-            '    <li><a href="%s/">'
-            '<span class="date">%d %s</span>'
-            '<span class="cat">%s</span></a></li>'
-            % (entry["date"], when.day, MONTHS[when.month - 1][:3], esc(entry["category"])))
-    else:
-        # No category and no link: that is the whole point of holding it back.
-        # data-date lets the inline script below reinstate the day, from the
-        # visitor's clock, if this file was generated before the day came due.
-        rows.append(
-            '    <li class="soon" data-date="%s">'
-            '<span class="date">%d %s</span>'
-            '<span class="cat">Not out yet</span></li>'
-            % (entry["date"], when.day, MONTHS[when.month - 1][:3]))
 
-if days:
-    rows.append('  </ul>')
+by_date = {entry["date"]: entry for entry in days}
+month_keys = sorted({entry["date"][:7] for entry in days})
+
+# The month a crawler and the page's first paint treat as current. The script
+# moves to the visitor's own month, which can differ near a month boundary.
+this_month = TODAY.strftime("%Y-%m")
+current_key = max([k for k in month_keys if k <= this_month] or month_keys[:1] or [""])
+
+sections = []
+for key in month_keys:
+    year, month = int(key[:4]), int(key[5:])
+    cells = ['        <li class="pad" aria-hidden="true"></li>'] * sunday_first(date(year, month, 1))
+
+    for number in range(1, calendar.monthrange(year, month)[1] + 1):
+        when = date(year, month, number)
+        iso = when.isoformat()
+        entry = by_date.get(iso)
+        spoken = "%s %d %s %d" % (WEEKDAYS[sunday_first(when)], number, MONTHS[month - 1], year)
+
+        if entry is None:
+            # A date in a month the run touches but has no puzzle of its own.
+            cells.append('        <li class="none"><span class="n">%d</span></li>' % number)
+        elif when <= TODAY:
+            cells.append(
+                '        <li data-day="%s"><a href="%s/" aria-label="%s: %s">'
+                '<span class="n">%d</span><span class="cat">%s</span></a></li>'
+                % (iso, iso, spoken, esc(entry["category"]), number, esc(entry["category"])))
+        else:
+            # No category and no link: that is the whole point of holding it back.
+            # data-date lets the script reinstate the day, from the visitor's
+            # clock, if this file was generated before the day came due.
+            cells.append(
+                '        <li class="soon" data-day="%s" data-date="%s">'
+                '<span class="n" aria-hidden="true">%d</span><span class="sr-only">%s, not out yet</span></li>'
+                % (iso, iso, number, spoken))
+
+    sections.append(
+        '  <section class="month%s" data-month="%s" aria-labelledby="m-%s">\n'
+        '    <h2 class="month-title" id="m-%s">%s %d</h2>\n'
+        '    <div class="dow" aria-hidden="true">%s</div>\n'
+        '    <ol class="days">\n%s\n    </ol>\n'
+        '  </section>'
+        % (" is-shown" if key == current_key else "", key, key, key, MONTHS[month - 1], year,
+           "".join("<span>%s</span>" % name[:3] for name in WEEKDAYS), "\n".join(cells)))
 
 # Kept out of the .format() template on purpose: it is full of braces, and
 # doubling every one of them to survive str.format is how this breaks later.
-CATCH_UP_SCRIPT = """<script>
-/* This page is generated, so its idea of "released" is frozen at generation
-   time. If it was not rebuilt today, any day that has since come due is still
-   sitting here as "Not out yet". Put those back, using the visitor's own
-   calendar date - the same cut app.js makes - and the category list the player
-   already downloads. Progressive enhancement only: with no JS, or if the fetch
-   fails, the page stays exactly as generated. Crawlers are unaffected; the
-   unreleased day pages carry noindex until they are regenerated. */
+# {% raw %} keeps Jekyll's Liquid away from it for the same reason.
+CALENDAR_SCRIPT = """{% raw %}<script>
+/* Two jobs, both progressive enhancement: with no JS the page shows every
+   month as generated.
+
+   1. This page is generated, so its idea of "released" is frozen at generation
+      time. If it was not rebuilt today, any day that has since come due is
+      still held back. Put those back, using the visitor's own calendar date -
+      the same cut app.js makes - and the category list the player already
+      downloads. Crawlers are unaffected; the unreleased day pages carry noindex
+      until they are regenerated.
+   2. Show one month at a time, opening on the visitor's month, with buttons
+      back through earlier months and forward no further than this month. */
 (function () {
-  var held = document.querySelectorAll('li.soon[data-date]');
-  if (!held.length || !window.fetch) return;
+  var cal = document.getElementById('cal');
+  if (!cal) return;
 
-  var now = new Date();
   var pad = function (n) { return (n < 10 ? '0' : '') + n; };
-  var today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' +
-              pad(now.getDate());
+  var now = new Date();
+  var today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  var thisMonth = today.slice(0, 7);
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                'August', 'September', 'October', 'November', 'December'];
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+  var todayCell = cal.querySelector('li[data-day="' + today + '"]');
+  if (todayCell) {
+    todayCell.classList.add('is-today');
+    todayCell.setAttribute('aria-current', 'date');
+  }
+
+  /* 1. Days that have come due since generation. ISO dates compare as strings. */
+  var held = cal.querySelectorAll('li.soon[data-date]');
   var due = [];
   for (var i = 0; i < held.length; i++) {
-    /* ISO dates compare correctly as strings. */
     if (held[i].getAttribute('data-date') <= today) due.push(held[i]);
   }
-  if (!due.length) return;
+  if (due.length && window.fetch) {
+    fetch('../play/data/index.json').then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (list) {
+      if (!list) return;
+      var category = {};
+      list.forEach(function (m) { category[m.date] = m.category; });
 
-  fetch('../play/data/index.json').then(function (r) {
-    return r.ok ? r.json() : null;
-  }).then(function (list) {
-    if (!list) return;
-    var category = {};
-    list.forEach(function (m) { category[m.date] = m.category; });
+      due.forEach(function (li) {
+        var date = li.getAttribute('data-date');
+        var name = category[date];
+        if (!name) return;
+        var d = new Date(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10));
 
-    due.forEach(function (li) {
-      var date = li.getAttribute('data-date');
-      var name = category[date];
-      if (!name) return;
+        var link = document.createElement('a');
+        link.href = date + '/';
+        link.setAttribute('aria-label', DAYS[d.getDay()] + ' ' + d.getDate() + ' ' +
+                          MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ': ' + name);
+        var n = document.createElement('span');
+        n.className = 'n';
+        n.textContent = d.getDate();
+        var cat = document.createElement('span');
+        cat.className = 'cat';
+        cat.textContent = name;
+        link.appendChild(n);
+        link.appendChild(cat);
 
-      var link = document.createElement('a');
-      link.href = date + '/';
+        li.innerHTML = '';
+        li.classList.remove('soon');
+        li.removeAttribute('data-date');
+        li.appendChild(link);
+      });
+    })['catch'](function () { /* leave the days as generated */ });
+  }
 
-      var when = li.querySelector('.date');
-      if (!when) return;
-      var cat = document.createElement('span');
-      cat.className = 'cat';
-      cat.textContent = name;
+  /* 2. One month at a time. */
+  var months = [].slice.call(cal.querySelectorAll('.month'));
+  var nav = cal.querySelector('.cal-nav');
+  if (!months.length || !nav) return;
+  var title = nav.querySelector('.cal-title');
+  var prev = nav.querySelector('[data-step="-1"]');
+  var next = nav.querySelector('[data-step="1"]');
 
-      link.appendChild(when);
-      link.appendChild(cat);
+  /* The newest month that has begun on the visitor's clock. */
+  var last = 0;
+  months.forEach(function (m, j) { if (m.getAttribute('data-month') <= thisMonth) last = j; });
 
-      li.innerHTML = '';
-      li.className = '';
-      li.removeAttribute('data-date');
-      li.appendChild(link);
-    });
-  })['catch'](function () { /* leave the page as generated */ });
+  var shown = last;
+  var asked = /^#(\\d{4}-\\d{2})$/.exec(window.location.hash);
+  if (asked) {
+    months.forEach(function (m, j) { if (j <= last && m.getAttribute('data-month') === asked[1]) shown = j; });
+  }
+
+  function show(j, remember) {
+    shown = j;
+    months.forEach(function (m, k) { m.classList.toggle('is-shown', k === j); });
+    title.textContent = months[j].querySelector('.month-title').textContent;
+    /* A focused button that is about to be disabled would drop keyboard focus
+       to the top of the page; hand it to the other button first. */
+    var focused = document.activeElement;
+    prev.disabled = next.disabled = false;
+    if (focused === prev && j === 0) next.focus();
+    if (focused === next && j >= last) prev.focus();
+    prev.disabled = j === 0;
+    next.disabled = j >= last;
+    if (remember && window.history && history.replaceState) {
+      history.replaceState(null, '', j === last ? window.location.pathname
+                                                : '#' + months[j].getAttribute('data-month'));
+    }
+  }
+
+  nav.addEventListener('click', function (e) {
+    var button = e.target.closest ? e.target.closest('button[data-step]') : null;
+    if (!button || button.disabled) return;
+    show(shown + Number(button.getAttribute('data-step')), true);
+  });
+
+  nav.hidden = false;
+  cal.classList.add('is-paged');
+  show(shown, false);
 })();
-</script>"""
+</script>{% endraw %}"""
 
-index_html = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="x-ua-compatible" content="ie=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Linky Words Daily &middot; every puzzle so far</title>
-<meta name="description" content="Every Linky Words daily puzzle released so far. Ten grids, one category, the same puzzle for everyone. Free in your browser.">
-<link rel="canonical" href="{base}/d/">
-<link rel="shortcut icon" href="{base}/assets/icon.png">
-<meta name="apple-itunes-app" content="app-id=6476451925">
-
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Linky Words">
-<meta property="og:title" content="Linky Words Daily &middot; every puzzle so far">
-<meta property="og:description" content="Every Linky Words daily puzzle released so far. Ten grids, one category, the same puzzle for everyone. Free in your browser.">
-<meta property="og:url" content="{base}/d/">
-<meta property="og:image" content="{base}/assets/headerimage.png">
-<meta property="og:image:secure_url" content="{base}/assets/headerimage.png">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1500">
-<meta property="og:image:height" content="1001">
-<meta property="og:image:alt" content="Linky Words - link letters together to form words.">
-
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@metiscoda">
-<meta name="twitter:title" content="Linky Words Daily &middot; every puzzle so far">
-<meta name="twitter:description" content="Every Linky Words daily puzzle released so far. Ten grids, one category, the same puzzle for everyone. Free in your browser.">
-<meta name="twitter:image" content="{base}/assets/headerimage.png">
-
+# A Jekyll page (it has front matter), so it shares the site's head, top bar,
+# footer and app band through _layouts/page.html. Everything below the front
+# matter is plain HTML and must stay free of Liquid; the script is fenced off.
+index_html = """---
+layout: page
+title: Past puzzles
+seo_title: "Linky Words Daily · every puzzle so far"
+description: "Every Linky Words daily puzzle released so far. Ten grids, one category, the same puzzle for everyone. Free in your browser."
+lead: "Ten grids, one theme, the same puzzle for everyone. Pick a day to play it in your browser. New puzzles appear on the day they are due."
+og_image: assets/og/landing.png
+og_image_width: 1200
+og_image_height: 630
+og_image_alt: "Linky Words: a letter grid with LINKY, WORDS and PUZZLE traced through it."
+prose: false
+---
 <!-- Generated by _tools/gen-archive.py. Do not edit by hand: rerun
      `python3 _tools/gen-archive.py` after exporting new days, and on any day
      the site is rebuilt, so the days that have since come due get their links. -->
 
-<style>
-  html, body {{ margin: 0; padding: 0; }}
-  body {{
-    background: #FFF9F0;
-    color: #3A332B;
-    font-family: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    padding: 32px 16px 56px;
-  }}
-  main {{ max-width: 44rem; margin: 0 auto; }}
-  .eyebrow {{
-    font-size: 0.9rem; letter-spacing: 0.08em; text-transform: uppercase;
-    color: #6F6557; margin: 0 0 0.5rem;
-  }}
-  h1 {{ font-size: 2rem; line-height: 1.2; margin: 0 0 0.6rem; }}
-  p.blurb {{ color: #6F6557; margin: 0 0 1.6rem; }}
-  a.today {{
-    display: inline-block; background: #3A332B; color: #FFF9F0;
-    text-decoration: none; font-weight: 700;
-    padding: 0.7rem 1.4rem; border-radius: 999px; margin-bottom: 2rem;
-  }}
-  h2 {{ font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.06em;
-       color: #6F6557; margin: 2rem 0 0.6rem; }}
-  ul.days {{ list-style: none; margin: 0; padding: 0;
-             display: grid; gap: 8px;
-             grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }}
-  ul.days li {{ border: 1px solid #E4D9C6; border-radius: 10px; }}
-  ul.days a, ul.days .soon > span:first-child {{ display: block; }}
-  ul.days a {{ text-decoration: none; color: #3A332B; padding: 0.6rem 0.8rem; }}
-  ul.days a:hover {{ background: #F3E7D3; }}
-  ul.days li.soon {{ padding: 0.6rem 0.8rem; border-style: dashed; color: #9B917F; }}
-  .date {{ display: block; font-weight: 700; }}
-  .cat {{ display: block; font-size: 0.95rem; color: #6F6557; }}
-  ul.days li.soon .cat {{ color: #9B917F; }}
-  footer {{ margin-top: 2.5rem; color: #6F6557; font-size: 0.95rem; }}
-  footer a {{ color: #3A332B; }}
-</style>
-</head>
-<body>
-<main>
-  <p class="eyebrow">Linky Words</p>
-  <h1>The daily puzzle, day by day</h1>
-  <p class="blurb">Ten grids, one category, the same puzzle for everyone. Free
-  in your browser, no sign-up. Puzzles appear here on the day they are due.</p>
-  <a class="today" href="../play/">Play today&rsquo;s puzzle</a>
+<p class="archive-cta"><a class="btn btn-primary" href="../play/">Play today&rsquo;s puzzle</a></p>
 
-{rows}
+<div class="cal" id="cal">
+  <div class="cal-nav" hidden>
+    <button type="button" class="cal-btn" data-step="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <p class="cal-title" aria-live="polite"></p>
+    <button type="button" class="cal-btn" data-step="1" aria-label="Next month"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
 
-  <footer>
-    <p><a href="../">About Linky Words</a> &middot; the full game, with every
-    category, is on the <a href="https://apps.apple.com/us/app/linky-words-word-puzzle-game/id6476451925">App Store</a>
-    and <a href="https://play.google.com/store/apps/details?id=com.metiscoda.linkletter&amp;referrer=utm_source%3Dsite%26utm_medium%3Dorganic%26utm_campaign%3Darchive">Google Play</a>.</p>
-  </footer>
-</main>
+{sections}
+</div>
+
 {script}
-</body>
-</html>
-""".format(base=BASE, rows="\n".join(rows), script=CATCH_UP_SCRIPT)
+""".format(sections="\n\n".join(sections), script=CALENDAR_SCRIPT)
 
 with open(os.path.join(SITE, "d", "index.html"), "w") as handle:
     handle.write(index_html)
@@ -324,7 +359,7 @@ entries = [("%s/" % BASE, lastmod(os.path.join(SITE, "index.html"), *JEKYLL)),
            ("%s/play/" % BASE, lastmod(os.path.join(SITE, "play", "index.html"))),
            # written above, so an unchanged day leaves it byte-identical and dated
            # by its last commit
-           ("%s/d/" % BASE, lastmod(os.path.join(SITE, "d", "index.html")))]
+           ("%s/d/" % BASE, lastmod(os.path.join(SITE, "d", "index.html"), *JEKYLL))]
 
 entries += [("%s/d/%s/" % (BASE, d["date"]),
              lastmod(os.path.join(SITE, "d", d["date"], "index.html")))

@@ -2,13 +2,13 @@
 	<meta charset="utf-8">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<base target="_blank">
 
 	{% comment %}
 	Shared head for the Jekyll-rendered pages only (landing page, privacy
-	policy, changelog). The per-day share pages under /d/YYYY-MM-DD/ and the
-	player under /play/ are static files with no front matter, so Jekyll never
-	applies this include to them and their own og:/twitter: tags stand alone.
+	policy, changelog, and the generated archive d/index.html). The per-day
+	share pages under /d/YYYY-MM-DD/ and the player under /play/ are static
+	files with no front matter, so Jekyll never applies this include to them
+	and their own og:/twitter: tags stand alone.
 	{% endcomment %}
 
 	{% if page.url == '/' %}
@@ -27,39 +27,41 @@
 	{% endif %}
 
 	{% assign site_base = site.url | append: site.baseurl %}
-	{% assign social_title = site.page_title | default: site.app_name %}
+	{% capture full_title %}{% if page.seo_title %}{{ page.seo_title }}{% elsif page.title %}{{ page.title }} &middot; {{ site.app_name }}{% else %}{{ site.app_name }}{% endif %}{% endcapture %}
+	{% assign meta_description = page.description | default: site.app_description %}
 
-	<title class="pageTitle">{{ site.page_title }}</title>
-	<meta name="description" content="{{ site.app_description }}">
+	<title>{{ full_title }}</title>
+	<meta name="description" content="{{ meta_description }}">
 	<link rel="canonical" href="{{ site_base }}{{ page.url }}">
 
 	<meta property="og:type" content="website">
 	<meta property="og:site_name" content="{{ site.app_name }}">
-	<meta property="og:title" content="{% if page.title %}{{ page.title }} &middot; {% endif %}{{ social_title }}">
-	<meta property="og:description" content="{{ site.app_description }}">
+	<meta property="og:title" content="{{ full_title }}">
+	<meta property="og:description" content="{{ meta_description }}">
 	<meta property="og:url" content="{{ site_base }}{{ page.url }}">
-	<meta property="og:image" content="{{ site_base }}/{{ site.cover_image }}">
-	<meta property="og:image:secure_url" content="{{ site_base }}/{{ site.cover_image }}">
+	{% assign og_image = page.og_image | default: site.cover_image %}
+	<meta property="og:image" content="{{ site_base }}/{{ og_image }}">
+	<meta property="og:image:secure_url" content="{{ site_base }}/{{ og_image }}">
 	<meta property="og:image:type" content="image/png">
-	<meta property="og:image:width" content="1500">
-	<meta property="og:image:height" content="1001">
-	<meta property="og:image:alt" content="{{ site.app_name }} &mdash; {{ site.app_description }}">
+	<meta property="og:image:width" content="{{ page.og_image_width | default: 1500 }}">
+	<meta property="og:image:height" content="{{ page.og_image_height | default: 1001 }}">
+	<meta property="og:image:alt" content="{% if page.og_image_alt %}{{ page.og_image_alt }}{% else %}{{ site.app_name }} &mdash; {{ site.app_description }}{% endif %}">
 
 	<meta name="twitter:card" content="summary_large_image">
 	{% if site.twitter_username %}<meta name="twitter:site" content="@{{ site.twitter_username }}">{% endif %}
-	<meta name="twitter:title" content="{% if page.title %}{{ page.title }} &middot; {% endif %}{{ social_title }}">
-	<meta name="twitter:description" content="{{ site.app_description }}">
-	<meta name="twitter:image" content="{{ site_base }}/{{ site.cover_image }}">
+	<meta name="twitter:title" content="{{ full_title }}">
+	<meta name="twitter:description" content="{{ meta_description }}">
+	<meta name="twitter:image" content="{{ site_base }}/{{ og_image }}">
 
-	<link rel="shortcut icon" href="{{ site.app_icon }}">
+	<link rel="shortcut icon" href="{{ site.app_icon | relative_url }}">
 
 	<!-- Smart App Banner -->
 	{% if site.enable_smart_app_banner %}
 		<meta name="apple-itunes-app" content="app-id={{ site.ios_app_id }}">
 	{% endif %}
 
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-	<link rel="stylesheet" href="/main.css">
-	<link rel="stylesheet" href="main.css">
-	<link rel="stylesheet" href="../main.css">
+	<meta name="theme-color" content="#FFF9F0" media="(prefers-color-scheme: light)">
+	<meta name="theme-color" content="#1E1B17" media="(prefers-color-scheme: dark)">
+	<script>document.documentElement.className += ' js';</script>
+	<link rel="stylesheet" href="{{ '/assets/site.css' | relative_url }}">
 </head>

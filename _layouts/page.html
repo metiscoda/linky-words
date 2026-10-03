@@ -7,16 +7,30 @@
 
 {% include head.html %}
 
-<body class="subPageBody">
-    <div class="headerBackground subPageHeaderBackground">
-        <div class="container subPageContainer">
-        {% include header.html %}
-            <article class="page markdown-body">
+{% comment %}
+Text pages (What's New, Privacy Policy, and the generated daily archive at
+d/index.html): the front page's top bar, footer and styles, a reading-width
+column for the Markdown (prose: false turns it off), and the app's pitch below.
+{% endcomment %}
+
+<body class="subpage">
+    {% include site-top.html %}
+
+    <main>
+        <article class="wrap page-wrap">
+            <header class="page-head">
+                <h1>{{ page.title }}</h1>
+                {% if page.lead %}<p class="lead">{{ page.lead }}</p>{% endif %}
+            </header>
+            <div{% unless page.prose == false %} class="prose"{% endunless %}>
                 {{ content }}
-            </article>
-        </div>
-        {% include appstoreimages.html %}
-    </div>
+            </div>
+        </article>
+
+        {% include app-promo.html %}
+    </main>
+
+    {% include site-foot.html %}
 </body>
 
 </html>

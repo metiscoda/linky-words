@@ -1,0 +1,14 @@
+{% comment %}Top bar shared by the front page and the text pages.{% endcomment %}
+<div class="wrap">
+    <header class="top">
+        <a class="brand" href="{{ '/' | relative_url }}">
+            <img src="{{ '/assets/landing/icon-192.webp' | relative_url }}" width="36" height="36" alt="">
+            <span>{{ site.app_name }}</span>
+        </a>
+        <nav class="top-nav" aria-label="Main">
+            <a class="hide-sm" href="{{ '/d/' | relative_url }}">Past puzzles</a>
+            <a class="hide-sm" href="{{ '/#app' | relative_url }}">The app</a>
+            <a class="btn btn-sm btn-primary" href="{{ '/play/' | relative_url }}">Play today</a>
+        </nav>
+    </header>
+</div>

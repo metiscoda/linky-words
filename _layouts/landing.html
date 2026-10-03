@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+{% include head.html %}
+
+{% comment %}
+The front page: the app's landing page and the way in to the web daily.
+Styles are plain CSS in assets/landing.css (same palette as play/style.css),
+so the page needs neither Sass nor the old template's jQuery and Font Awesome.
+assets/landing.js fills in today's theme and starts the board animation; the
+page reads and works without it.
+{% endcomment %}
+
+{% assign play_url = '/play/' | relative_url %}
+{% assign archive_url = '/d/' | relative_url %}
+
+<body class="landing">
+    <!-- Fallback for the ?d= forward in head.html when scripting is off.
+
+         It cannot carry the date across by itself: a static host serves the
+         same file whatever the query string says, and with scripting off there
+         is nothing left to read the query with. The version before this linked
+         straight to play/, which quietly served today's puzzle instead of the
+         day the link was for - someone following a friend's link to the 12th
+         would have played the 18th and never known they had been moved. So it
+         says where the date is and offers the list of days, and the one link
+         that does open a puzzle is labelled as today's. -->
+    <noscript>
+        <div class="noscript-note">
+            Following a daily puzzle link? Your browser has scripting off, so it
+            stopped here. The date you were sent is at the end of this page's
+            address, after <code>?d=</code> &mdash; open
+            <a href="{{ archive_url }}">the list of daily puzzles</a>
+            and pick that date, or go straight to
+            <code>metiscoda.com/linky-words/d/<i>that&nbsp;date</i>/</code>.
+            <a href="{{ play_url }}">Today's puzzle</a>
+            is here.
+        </div>
+    </noscript>
+
+    {% include site-top.html %}
+
+    <main>
+        <section class="wrap hero">
+            <div class="hero-copy">
+                <p class="eyebrow">A daily word puzzle</p>
+                <h1>Link the letters. Find&nbsp;the&nbsp;words.</h1>
+                <p class="lead">A new puzzle every day: one theme, ten letter grids, the same
+                for everyone.</p>
+
+                <div class="today" id="today" data-index="{{ '/play/data/index.json' | relative_url }}">
+                    <p class="today-label"><span>Today&rsquo;s puzzle</span><span class="today-date" id="today-date"></span></p>
+                    <p class="today-cat" id="today-cat"></p>
+                    <a class="btn btn-primary btn-lg" href="{{ play_url }}">Play in your browser</a>
+                    <p class="today-note">Free. No signup, no ads, nothing to install.</p>
+                </div>
+
+                <p class="also">The app adds 312 more grids, keeps your progress and shares your results.<span>Free on iPhone, iPad and Android.</span></p>
+                <div class="badges">
+                    <a href="{{ site.appstore_link }}"><img src="{{ '/assets/appstore.png' | relative_url }}" width="141" height="48" alt="Download on the App Store"></a>
+                    <a href="{{ site.playstore_link }}"><img src="{{ '/assets/playstore.png' | relative_url }}" width="163" height="48" alt="Get it on Google Play"></a>
+                </div>
+            </div>
+
+            <div class="hero-art">
+                <p class="sr-only">A sample grid: the words LINKY and WORDS are found, and PUZZLE is being traced through the letters.</p>
+                <div class="demo" aria-hidden="true">
+                    <ul class="chips">
+                        <li class="chip ok"><span class="dots">&bull;&bull;&bull;&bull;&bull;</span><span class="txt">LINKY</span></li>
+                        <li class="chip ok chip-w"><span class="dots">&bull;&bull;&bull;&bull;&bull;</span><span class="txt">WORDS</span></li>
+                        <li class="chip"><span class="dots">&bull;&bull;&bull;&bull;&bull;&bull;</span><span class="txt">PUZZLE</span></li>
+                    </ul>
+                    <svg class="board" viewBox="0 0 360 363" role="presentation" focusable="false">
+                        <defs>
+                            <g id="tile">
+                                <rect class="tb" y="3" width="78" height="78" rx="14"/>
+                                <rect class="ts" y="3" width="78" height="78" rx="14"/>
+                                <rect class="tf" width="78" height="78" rx="14"/>
+                            </g>
+                        </defs>
+                        <!-- Tiles, then the trails, then the letters, so a trail never dims a letter. -->
+                        <!-- LINKY, found -->
+                        <use class="tl ok" href="#tile" x="0" y="0"/>
+                        <use class="tl ok" href="#tile" x="94" y="0"/>
+                        <use class="tl ok" href="#tile" x="188" y="0"/>
+                        <use class="tl ok" href="#tile" x="282" y="0"/>
+                        <use class="tl ok" href="#tile" x="282" y="94"/>
+                        <!-- WORDS, found by the animation -->
+                        <use class="tl ok w" style="--t:.3s" href="#tile" x="188" y="94"/>
+                        <use class="tl ok w" style="--t:.7s" href="#tile" x="188" y="188"/>
+                        <use class="tl ok w" style="--t:1.1s" href="#tile" x="282" y="188"/>
+                        <use class="tl ok w" style="--t:1.5s" href="#tile" x="282" y="282"/>
+                        <use class="tl ok w" style="--t:1.9s" href="#tile" x="188" y="282"/>
+                        <!-- PUZZLE, half traced -->
+                        <use class="tl on p" style="--t:2.7s" href="#tile" x="0" y="94"/>
+                        <use class="tl on p" style="--t:3.1s" href="#tile" x="94" y="94"/>
+                        <use class="tl on p" style="--t:3.5s" href="#tile" x="94" y="188"/>
+                        <use class="tl on p" style="--t:3.9s" href="#tile" x="0" y="188"/>
+                        <use class="tl" href="#tile" x="0" y="282"/>
+                        <use class="tl" href="#tile" x="94" y="282"/>
+                        <path class="trail trail-1" d="M227 133V227H321V321H227"/>
+                        <path class="trail trail-2" d="M39 133H133V227H39"/>
+                        <text class="lt ok" x="39" y="39">L</text>
+                        <text class="lt ok" x="133" y="39">I</text>
+                        <text class="lt ok" x="227" y="39">N</text>
+                        <text class="lt ok" x="321" y="39">K</text>
+                        <text class="lt ok" x="321" y="133">Y</text>
+                        <text class="lt ok w" style="--t:.3s" x="227" y="133">W</text>
+                        <text class="lt ok w" style="--t:.7s" x="227" y="227">O</text>
+                        <text class="lt ok w" style="--t:1.1s" x="321" y="227">R</text>
+                        <text class="lt ok w" style="--t:1.5s" x="321" y="321">D</text>
+                        <text class="lt ok w" style="--t:1.9s" x="227" y="321">S</text>
+                        <text class="lt on p" style="--t:2.7s" x="39" y="133">P</text>
+                        <text class="lt on p" style="--t:3.1s" x="133" y="133">U</text>
+                        <text class="lt on p" style="--t:3.5s" x="133" y="227">Z</text>
+                        <text class="lt on p" style="--t:3.9s" x="39" y="227">Z</text>
+                        <text class="lt" x="39" y="321">L</text>
+                        <text class="lt" x="133" y="321">E</text>
+                    </svg>
+                    <p class="demo-hint">Drag across, down or diagonally</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="band" aria-labelledby="how">
+            <div class="wrap">
+                <h2 id="how">How to play</h2>
+                <ol class="steps">
+                    <li class="step">
+                        <span class="step-n" aria-hidden="true">1</span>
+                        <h3>Drag through the letters</h3>
+                        <p>Trace a word through tiles that touch: across, down or diagonally.</p>
+                    </li>
+                    <li class="step">
+                        <span class="step-n" aria-hidden="true">2</span>
+                        <h3>Every word fits the theme</h3>
+                        <p>Each grid has a theme, so the words you&rsquo;re hunting for are related. One day it&rsquo;s Music, another it&rsquo;s Pirates.</p>
+                    </li>
+                    <li class="step">
+                        <span class="step-n" aria-hidden="true">3</span>
+                        <h3>Clear the grid</h3>
+                        <p>Find every word to finish the level. Grids grow from 3&times;3 to 5&times;5 over the day&rsquo;s ten levels, and a hint reveals a letter when you&rsquo;re stuck.</p>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="section" aria-labelledby="look">
+            <div class="wrap">
+                <h2 id="look">A look at the app</h2>
+            </div>
+            <div class="shots-scroll">
+                <ul class="shots">
+                    <li><figure><img src="{{ '/assets/landing/shot-start.webp' | relative_url }}" width="600" height="1303" loading="lazy" alt="The Linky Words start screen, with Play, Daily Challenge, Store and Settings buttons."><figcaption>The start screen</figcaption></figure></li>
+                    <li><figure><img src="{{ '/assets/landing/shot-board.webp' | relative_url }}" width="600" height="1303" loading="lazy" alt="A four by four letter grid at Level 1, with Restart and Hint buttons."><figcaption>A grid in play</figcaption></figure></li>
+                    <li><figure><img src="{{ '/assets/landing/shot-categories.webp' | relative_url }}" width="600" height="1303" loading="lazy" alt="The category list, showing Veggies, Maritime, Games, Animals and Beach."><figcaption>Categories</figcaption></figure></li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="band" aria-labelledby="ways">
+            <div class="wrap">
+                <h2 id="ways">Play in your browser, or take it with&nbsp;you</h2>
+                <p class="section-lead">It&rsquo;s the same daily puzzle in both. Play it here with nothing to install, or get the app for everything else.</p>
+                <div class="ways">
+                    <article class="way">
+                        <h3>In your browser</h3>
+                        <p>Today&rsquo;s daily puzzle, free for everyone.</p>
+                        <ul class="ticks">
+                            <li>Ten grids on one theme, new every day</li>
+                            <li>The same puzzle for everyone, so you can compare results with friends</li>
+                            <li>Every past day is in the archive</li>
+                            <li>No signup, no ads, nothing to install</li>
+                        </ul>
+                        <div class="way-actions">
+                            <a class="btn btn-primary" href="{{ play_url }}">Play today&rsquo;s puzzle</a>
+                            <a class="btn" href="{{ archive_url }}">Browse past days</a>
+                        </div>
+                    </article>
+                    <article class="way" id="app">
+                        <h3>In the app</h3>
+                        <p>The same daily, plus a lot more to play.</p>
+                        <ul class="ticks">
+                            <li>312 more grids across 32 categories</li>
+                            <li>Keeps your progress: every level, every daily and your streak</li>
+                            <li>Share your daily result with a link that opens the same puzzle for friends</li>
+                            <li>Plays offline, wherever you are</li>
+                            <li>Free hints every day, and extra for keeping a streak</li>
+                            <li>An optional 7pm reminder when the day&rsquo;s puzzle is waiting</li>
+                        </ul>
+                        <div class="way-actions badges">
+                            <a href="{{ site.appstore_link }}"><img src="{{ '/assets/appstore.png' | relative_url }}" width="141" height="48" alt="Download on the App Store"></a>
+                            <a href="{{ site.playstore_link }}"><img src="{{ '/assets/playstore.png' | relative_url }}" width="163" height="48" alt="Get it on Google Play"></a>
+                        </div>
+                        <p class="way-note">Free to download, with ads. One purchase removes them.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" aria-labelledby="sets">
+            <div class="wrap">
+                <h2 id="sets">32 categories in four collections</h2>
+                <p class="section-lead">312 levels to play at your own pace, on grids from 3&times;3 up to 5&times;5.</p>
+                <ul class="sets">
+                    <li class="set">
+                        <span class="set-tile" aria-hidden="true">C</span>
+                        <h3>Classic</h3>
+                        <p class="set-count">132 levels</p>
+                        <p>Animals, Art, Beach, Camping, Computers, Family, Food, Games, Languages, Maritime, Monsters, Science, Sports and Veggies.</p>
+                    </li>
+                    <li class="set">
+                        <span class="set-tile" aria-hidden="true">G</span>
+                        <h3>Geography</h3>
+                        <p class="set-count">70 levels</p>
+                        <p>Countries, Capitals, Rivers, Mountains, Seas, Deserts and Islands.</p>
+                    </li>
+                    <li class="set">
+                        <span class="set-tile" aria-hidden="true">M</span>
+                        <h3>Mythology</h3>
+                        <p class="set-count">50 levels</p>
+                        <p>Greek, Roman, Norse, Egyptian and Hindu.</p>
+                    </li>
+                    <li class="set">
+                        <span class="set-tile" aria-hidden="true">W</span>
+                        <h3>Word Origins</h3>
+                        <p class="set-count">60 levels</p>
+                        <p>English words grouped by the language they came from: French, Spanish, Italian, Japanese, Arabic and Indian.</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="band" aria-labelledby="faq">
+            <div class="wrap"><div class="faq">
+                <h2 id="faq">Questions</h2>
+                <details>
+                    <summary>Is Linky Words free?</summary>
+                    <p>Yes. The daily puzzle in your browser is free, with no ads and no signup. The app is free to download; it shows ads, and a single Remove Ads purchase takes them away for good.</p>
+                </details>
+                <details>
+                    <summary>What if I miss a day?</summary>
+                    <p>In the app, a missed day stays playable for six more days, then moves to the archive. In your browser, every day since the first puzzle on 1&nbsp;September&nbsp;2026 is in <a href="{{ archive_url }}">the archive</a>.</p>
+                </details>
+                <details>
+                    <summary>Do I need an account?</summary>
+                    <p>No. There&rsquo;s nothing to sign up for. The app keeps your progress on your phone. In your browser it&rsquo;s saved in that browser only, so clearing its data or switching browsers starts you afresh.</p>
+                </details>
+                <details>
+                    <summary>Which devices can I play on?</summary>
+                    <p>The browser puzzle works on any phone, tablet or computer with an up-to-date browser. The app is on the App Store for iPhone and iPad, and on Google Play for Android.</p>
+                </details>
+            </div></div>
+        </section>
+
+        <section class="wrap section finale" aria-labelledby="finale">
+            <h2 id="finale">Today&rsquo;s grids are waiting</h2>
+            <p class="section-lead">Start in your browser now, or get the app and take Linky Words with you.</p>
+            <div class="finale-actions">
+                <a class="btn btn-primary btn-lg" href="{{ play_url }}">Play today&rsquo;s puzzle</a>
+                <div class="badges">
+                    <a href="{{ site.appstore_link }}"><img src="{{ '/assets/appstore.png' | relative_url }}" width="141" height="48" alt="Download on the App Store"></a>
+                    <a href="{{ site.playstore_link }}"><img src="{{ '/assets/playstore.png' | relative_url }}" width="163" height="48" alt="Get it on Google Play"></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    {% include site-foot.html %}
+
+    <script src="{{ '/assets/landing.js' | relative_url }}" defer></script>
+</body>
+</html>

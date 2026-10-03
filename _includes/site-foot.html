@@ -1,0 +1,25 @@
+{% comment %}Footer shared by the front page and the text pages.{% endcomment %}
+<div class="wrap">
+    <footer class="foot">
+        <div class="foot-brand">
+            <img src="{{ '/assets/landing/icon-192.webp' | relative_url }}" width="28" height="28" alt="">
+            <span>{{ site.app_name }} by {{ site.your_name }}{% if site.your_city %}, {{ site.your_city }}{% endif %}</span>
+        </div>
+        <nav class="foot-links" aria-label="Site">
+            {% comment %}
+            The daily archive is a plain static folder, so Jekyll knows
+            nothing about it and the loop below will never find it. It is
+            named here so the day pages are reachable by following links
+            from the front page, which is how a crawler gets to them.
+            {% endcomment %}
+            <a href="{{ '/play/' | relative_url }}">Today&rsquo;s puzzle</a>
+            <a href="{{ '/d/' | relative_url }}">Past puzzles</a>
+            {% for p in site.pages %}
+                <a href="{{ p.url | relative_url }}">{{ p.title }}</a>
+            {% endfor %}
+            {% if site.email_address %}<a href="mailto:{{ site.email_address }}">Contact</a>{% endif %}
+            {% if site.twitter_username %}<a href="https://twitter.com/{{ site.twitter_username }}">X / Twitter</a>{% endif %}
+            {% if site.facebook_username %}<a href="https://facebook.com/{{ site.facebook_username }}">Facebook</a>{% endif %}
+        </nav>
+    </footer>
+</div>

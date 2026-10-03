@@ -1,0 +1,23 @@
+{% comment %}The app's pitch at the foot of the text pages. Keep the ticks in step with the "In the app" card on the front page.{% endcomment %}
+<section class="band" aria-labelledby="promo">
+    <div class="wrap promo">
+        <div class="way promo-app">
+            <h2 id="promo">Take Linky Words with you</h2>
+            <ul class="ticks">
+                <li>Keeps your progress: every level, every daily and your streak</li>
+                <li>Share your daily result with a link that opens the same puzzle for friends</li>
+                <li>312 more grids across 32 categories, and it plays offline</li>
+            </ul>
+            <div class="way-actions badges">
+                <a href="{{ site.appstore_link }}"><img src="{{ '/assets/appstore.png' | relative_url }}" width="141" height="48" alt="Download on the App Store"></a>
+                <a href="{{ site.playstore_link }}"><img src="{{ '/assets/playstore.png' | relative_url }}" width="163" height="48" alt="Get it on Google Play"></a>
+            </div>
+            <p class="way-note">Free to download, with ads. One purchase removes them.</p>
+        </div>
+        <div class="promo-web">
+            <h3>Try it in your browser</h3>
+            <p>Today&rsquo;s daily puzzle is free in your browser, with no signup and no ads.</p>
+            <a class="btn btn-primary" href="{{ '/play/' | relative_url }}">Play today&rsquo;s puzzle</a>
+        </div>
+    </div>
+</section>
