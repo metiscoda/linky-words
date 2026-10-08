@@ -675,8 +675,30 @@ function boot() {
          and leave another tile uncovered. */
       t.disabled = !cell || !cell.used || !!locked[key];
     }
+    paintTracing();
     paintRestart();
     drawTrail();
+  }
+
+  /*
+   * The letters being traced, like the app's SelectedWordText, shown as they are in the message
+   * line under the board - the line that says "Not a word here" or "WORD ✓" once the finger
+   * lifts. is-tracing marks whose text is in the line; it carries no style. Every path change
+   * repaints the board, so this runs from paintBoard. The line is a polite live region for the
+   * feedback; it is switched off while tracing, or a screen reader would read out every letter.
+   */
+  function paintTracing() {
+    var line = $('d-message');
+    if (!line) return;
+    if (S.path.length) {
+      line.setAttribute('aria-live', 'off');
+      line.classList.add('is-tracing');
+      line.textContent = pathToWord(S.path);
+    } else if (line.classList.contains('is-tracing')) {
+      line.classList.remove('is-tracing');
+      line.setAttribute('aria-live', 'polite');
+      line.textContent = '\u00a0';
+    }
   }
 
   /* nothing to undo on a fresh level; nothing to restart once it is solved */
@@ -746,11 +768,22 @@ function boot() {
 
   var board = $('d-board');
 
+  /*
+   * Only the middle of a tile counts as touching it: the central TOUCH_ZONE share of its width
+   * and height, the app's LetterBoard.tileTouchOffset (0.75 in Main.unity). Anywhere on the tile
+   * used to count, so a diagonal drag clipped the corner of the tile beside it and picked up a
+   * letter the player never meant. Pressing and dragging both go through here, as in the app.
+   */
+  var TOUCH_ZONE = 0.75;
+
   function cellFromEvent(e) {
     var el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el) return null;
     var t = el.closest ? el.closest('.tile') : null;
     if (!t || !board.contains(t)) return null;
+    var r = t.getBoundingClientRect();
+    if (Math.abs(e.clientX - (r.left + r.width / 2)) > r.width * TOUCH_ZONE / 2 ||
+        Math.abs(e.clientY - (r.top + r.height / 2)) > r.height * TOUCH_ZONE / 2) return null;
     var cell = S.cells[+t.dataset.i];
     return playable(cell) ? cell : null;
   }

@@ -159,9 +159,13 @@ def main():
         title = "Linky Words Daily · %s — %s" % (pretty,
                                                           meta["category"])
         page_url = "%s/d/%s/" % (BASE, day)
-        image_url = "%s/assets/og/daily-%s.png" % (BASE, day)
-        alt = "A four-by-four Linky Words grid for %s, %s." % (
-            meta["category"], pretty)
+        # ?v=2: the cards were redrawn with hidden tiles (they used to show a
+        # real board, which spoiled it for everyone who saw a shared link), and
+        # chat apps cache a preview by its image URL. A new URL makes them fetch
+        # the new card. Bump it again whenever og-daily.py changes the cards.
+        image_url = "%s/assets/og/daily-%s.png?v=2" % (BASE, day)
+        alt = "Linky Words Daily for %s, %s: the theme over a grid of hidden letters." % (
+            pretty, meta["category"])
         html = TEMPLATE.format(
             title=esc(title), desc=esc(DESC), page_url=page_url,
             image_url=image_url, alt=esc(alt), date=day, base=BASE,
