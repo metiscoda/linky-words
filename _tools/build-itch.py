@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the web daily (play/) as an itch.io HTML game: _build/linky-words-itch.zip.
+"""Package the web daily (play/) as an itch.io HTML game: _build/itch/linky-words-itch.zip.
 
 itch.io serves an HTML game from its own domain (html-classic.itch.zone), inside
 an iframe on the game's page. The player mostly works there unchanged - it finds
@@ -38,7 +38,7 @@ import zipfile
 
 SITE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLAY = os.path.join(SITE, "play")
-OUT_DIR = os.path.join(SITE, "_build")
+OUT_DIR = os.path.join(SITE, "_build", "itch")   # beside the page text and images
 OUT = os.path.join(OUT_DIR, "linky-words-itch.zip")
 HOME = "https://www.metiscoda.com/linky-words/"
 NEW_TAB = ' target="_blank" rel="noopener"'

@@ -459,6 +459,8 @@ function boot() {
     $('btn-restart').addEventListener('click', restartLevel);
     $('btn-copy').addEventListener('click', copyResult);
     $('btn-share').addEventListener('click', shareResult);
+    $('btn-results').addEventListener('click', function () { showResults(true); });
+    $('btn-board').addEventListener('click', function () { showBoard(true); });
     $('btn-play').addEventListener('click', function () {
       var referrer = 'utm_source=' + src + '&utm_medium=organic&utm_campaign=web-daily';
       storeClick('play', STORE_PLAY + '&referrer=' + encodeURIComponent(referrer));
@@ -477,6 +479,9 @@ function boot() {
 
     track('web_daily_open', { content_id: S.day.id || dayId, is_today: idx === todayIdx, src: src });
 
+    /* a level saved with every word found was left in the moment before nextLevel ran; without
+       this the reload stops on its solved grid, and on the last level the day never finishes */
+    while (S.level < S.day.levels.length && levelSolved(S.level)) S.level++;
     if (S.level >= S.day.levels.length) { finishDay(false); return; }
     renderLevel();
   }
@@ -497,7 +502,8 @@ function boot() {
   function saveProgress() {
     writeJSON(LS_PROGRESS + '.' + S.day.id, {
       id: S.day.id,
-      level: S.level,
+      /* a finished day keeps its last grid on view (finishDay), but is saved as past the last level */
+      level: S.complete ? S.day.levels.length : S.level,
       found: S.found,
       foundPaths: S.foundPaths,
       reveals: S.reveals,
@@ -546,6 +552,12 @@ function boot() {
   /* ---------- rendering ---------- */
 
   function level() { return S.day.levels[S.level]; }
+
+  function levelSolved(i) {
+    var words = S.day.levels[i].words;
+    for (var k = 0; k < words.length; k++) if (S.found[i].indexOf(words[k]) === -1) return false;
+    return true;
+  }
 
   function renderLevel() {
     var lv = level();
@@ -753,8 +765,10 @@ function boot() {
   function paintStatus() {
     var lv = level();
     var remaining = lv.words.length - S.found[S.level].length;
-    $('d-level').textContent = 'Level ' + (S.level + 1) + ' of ' + S.day.levels.length +
-      ' · ' + remaining + ' word' + (remaining === 1 ? '' : 's') + ' left';
+    $('d-level').textContent = S.complete
+      ? 'All ' + S.day.levels.length + ' levels done'
+      : 'Level ' + (S.level + 1) + ' of ' + S.day.levels.length +
+        ' · ' + remaining + ' word' + (remaining === 1 ? '' : 's') + ' left';
     var left = HINT_CAP - S.hintsUsed;
     $('d-hints').textContent = left + ' left';
     $('btn-hint').disabled = left <= 0;
@@ -788,9 +802,9 @@ function boot() {
     return playable(cell) ? cell : null;
   }
 
-  /* a tile can be traced only while it is lettered and not already spent */
+  /* a tile can be traced only while the day is on, it is lettered and not already spent */
   function playable(cell) {
-    return !!cell && cell.used && cell.hasLetter && !(S.locked || {})[cell.r + ',' + cell.c];
+    return !S.complete && !!cell && cell.used && cell.hasLetter && !(S.locked || {})[cell.r + ',' + cell.c];
   }
 
   function lastCell() { return S.path.length ? S.path[S.path.length - 1] : null; }
@@ -988,12 +1002,14 @@ function boot() {
 
   function finishDay(justNow) {
     S.complete = true;
+    /* the last grid, solved, is what the puzzle screen shows from now on - every word found,
+       even if a save holds an older word list for it */
+    S.level = S.day.levels.length - 1;
+    S.found[S.level] = level().words.slice();
     pauseTimer();
     var seconds = Math.floor(elapsed() / 1000);
     var result = formatResult(S.dateStr, S.hintsPerLevel, totalWords(), seconds);
 
-    show('game', false);
-    show('done', true);
     /* shown, copied and shared with the link; the scoreboard above it stays
        byte-identical to the app's, so an app share and a web share read alike */
     $('d-result').textContent = formatShare(S.dateStr, S.hintsPerLevel, totalWords(), seconds);
@@ -1021,6 +1037,28 @@ function boot() {
         content_id: S.day.id || dayId, seconds: seconds, hints: S.hintsUsed, streak: n
       });
     }
+
+    /* the result comes up as the day is finished; coming back to a finished day opens on the
+       puzzle, with a button to the result */
+    if (justNow) showResults(true); else showBoard(false);
+  }
+
+  /* The two screens of a finished day. moveFocus is set when the player's own action switches
+     them, since the button or tile they were on is hidden with its screen. */
+  function showResults(moveFocus) {
+    show('game', false);
+    show('done', true);
+    if (moveFocus) $('done-title').focus();
+  }
+
+  function showBoard(moveFocus) {
+    show('done', false);
+    show('game', true);
+    renderLevel();
+    $('btn-restart').hidden = true;
+    $('btn-hint').hidden = true;
+    $('btn-results').hidden = false;
+    if (moveFocus) $('btn-results').focus();
   }
 
   /* A first visit wants more to play; a returning player has a habit to keep. */

@@ -55,15 +55,17 @@
     <div class="controls">
       <button type="button" class="btn btn-ghost" id="btn-restart" disabled>Restart level</button>
       <button type="button" class="btn btn-ghost" id="btn-hint">Hint <span id="d-hints">5 left</span></button>
+      <button type="button" class="btn btn-primary" id="btn-results" hidden>See your result</button>
     </div>
   </section>
 
   <section id="done" class="panel" hidden>
-    <h2 class="panel-title">Day complete</h2>
+    <h2 class="panel-title" id="done-title" tabindex="-1">Day complete</h2>
     <pre class="result" id="d-result"></pre>
     <div class="controls">
       <button type="button" class="btn btn-primary" id="btn-copy">Copy result</button>
       <button type="button" class="btn btn-ghost" id="btn-share" hidden>Share</button>
+      <button type="button" class="btn btn-ghost" id="btn-board">Back to the puzzle</button>
     </div>
     <p class="streak" id="d-streak"></p>
     <div class="cta">
